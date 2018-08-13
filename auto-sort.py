@@ -314,6 +314,8 @@ search_query={
 ticket_ids = [ticket['id'].split('/')[1] for ticket in tracker.search(**search_query)]
 log.info('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))
 for n, ticket_id in enumerate(ticket_ids):
+    if ticket_id == '3057380':
+        continue
     while True:
         try:
             log.info('[#%s] Processing ticket %d of %d', ticket_id, n + 1, len(ticket_ids))

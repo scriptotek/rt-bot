@@ -105,6 +105,7 @@ log.info('RT login OK')
 
 # Suggest a queue based on the owning library of any item barcodes found in the email body.
 def suggest_from_alma_items(ticket_id, content):
+    rule_name = 'alma_items'
 
     barcodes = re.findall(r'\b[0-9a-zA-Z]{9}\b', content)
     barcodes = set([x for x in barcodes if re.search(r'[0-9]{4}', x)])
@@ -119,20 +120,19 @@ def suggest_from_alma_items(ticket_id, content):
     for barcode in barcodes:
         response = session.get(
             '%s/items' % ALMA_URL,
-            params={
-                'item_barcode': barcode,
-            }
+            params={'item_barcode': barcode}
         ).json()
-        if 'errorsExist' in response:
+
+        item_data = response.get('item_data')
+
+        if item_data is None:
             log.info('[#%s] Invalid barcode: %s', ticket_id, barcode)
         else:
-            # log.info('[#%s] Valid barcode found: %s', ticket_id, barcode)
-            # print(response)
-            libcode = response['item_data']['library']['value']
-            libname = response['item_data']['library']['desc']
+            libcode = item_data['library']['value']
+            libname = item_data['library']['desc']
 
-            loccode = response['item_data']['location']['value']
-            locname = response['item_data']['location']['desc']
+            loccode = item_data['location']['value']
+            locname = item_data['location']['desc']
 
             log.info('[#%s] Barcode %s belongs to %s', ticket_id, barcode, libname)
 
@@ -140,6 +140,7 @@ def suggest_from_alma_items(ticket_id, content):
                 log.warning('Unknown library code: %s', libcode)
             else:
                 yield {
+                    'rule': rule_name,
                     'queue': libcode_map[libcode],
                     'comment': '- %s hører til %s %s.' % (barcode, libname, locname),
                 }
@@ -147,11 +148,13 @@ def suggest_from_alma_items(ticket_id, content):
 
 # Suggest a queue based on specific text patterns found the email body.
 def suggest_from_pattern_match(ticket_id, content):
+    rule_name = 'pattern_match'
     suggest_queue = None
     for pattern, queue in pattern_map.items():
         if re.search(pattern, content):
             log.info('[#%s] Ticket content matched pattern "%s"', ticket_id, pattern)
             yield {
+                'rule': rule_name,
                 'queue': queue,
                 'comment': '- Meldingen inneholder teksten "%s"' % pattern,
             }
@@ -159,6 +162,7 @@ def suggest_from_pattern_match(ticket_id, content):
 
 # Suggest a queue based on the resource sharing library of the sender.
 def suggest_from_sender(ticket_id, email):
+    rule_name = 'rs_library'
     search_results = session.get(
         '%s/users' % ALMA_URL,
         params={
@@ -170,6 +174,7 @@ def suggest_from_sender(ticket_id, email):
 
     if search_results['total_record_count'] == 0:
         yield {
+            'rule': rule_name,
             'queue': None,
             'comment': '- Avsenderadressen ble ikke funnet i Alma.',
         }
@@ -182,6 +187,7 @@ def suggest_from_sender(ticket_id, email):
 
         if user_group_code >= 8:
             yield {
+            'rule': rule_name,
                 'queue': None,
                 'comment': '- Avsender (%s) er i brukergruppen «%s».' % (
                     primary_id,
@@ -197,6 +203,7 @@ def suggest_from_sender(ticket_id, email):
             queue = libcode_map.get(libcode)
             if queue is not None:
                 yield {
+                    'rule': rule_name,
                     'queue': queue,
                     'comment': '- Avsender (%s) er i brukergruppen «%s» og har %s som resource sharing library.' % (
                         primary_id,
@@ -207,6 +214,7 @@ def suggest_from_sender(ticket_id, email):
         else:
             log.info('[#%s] Sender email %s belongs to Alma user %s, who does not have a resource sharing library configured.', ticket_id, email, primary_id)
             yield {
+                'rule': rule_name,
                 'queue': None,
                 'comment': '- Avsender (%s) er i brukergruppen «%s» og har ikke noe resource sharing library.' % (
                     primary_id,
@@ -215,36 +223,48 @@ def suggest_from_sender(ticket_id, email):
             }
 
 
-def process_ticket(ticket_id):
+def get_suggestions(ticket_id):
+    # Given a ticket id, generate a set of suggestions
+
+    suggestions = []
+
     ticket = tracker.get_ticket(ticket_id)
-
-    # Order of preference
-    suggestion_order = ['alma_items', 'pattern_match', 'sender_rs']
-
-    suggestions = {x: [] for x in suggestion_order}
-
-    # Get resource sharing library
     requestor_email = ticket['Requestors'][0]
+
+    # Generate suggestions from the resource sharing library of the sender
     for suggestion in suggest_from_sender(ticket_id, requestor_email):
-        suggestions['sender_rs'].append(suggestion)
+        suggestions.append(suggestion)
 
     # Loop through attachments and check their content
     for n, att_info in enumerate(tracker.get_attachments(ticket_id)):
         att = tracker.get_attachment(ticket_id, att_info[0])
-        content_type = att['ContentType']
-        if content_type == 'text/plain':
+        if att['ContentType'] == 'text/plain':
             content = att['Content'].decode('utf-8')
-            for suggestion in suggest_from_alma_items(ticket_id, content):
-                suggestions['alma_items'].append(suggestion)
-            for suggestion in suggest_from_pattern_match(ticket_id, content):
-                suggestions['pattern_match'].append(suggestion)
-            break
 
-    # We now have zero or more suggestions. Time to make a decision.
+            # Generate suggestions from the document barcodes found in the text
+            for suggestion in suggest_from_alma_items(ticket_id, content):
+                suggestions.append(suggestion)
+
+            # Generate suggestions from pre-defined text pattern matches
+            for suggestion in suggest_from_pattern_match(ticket_id, content):
+                suggestions.append(suggestion)
+
+            break  # Don't process the same ticket more than once
+
+    return suggestions
+
+
+def make_decision(suggestions):
+    # Given a set of suggestions, make a decision
+
+    # Order of preference
+    rule_preference_order = ['alma_items', 'pattern_match', 'sender_rs']
+
     decision = None
     comments = [];
-    for k in suggestion_order:
-        for suggestion in suggestions[k]:
+    for k in rule_preference_order:
+        matched = [suggestion for suggestion in suggestions if suggestion['rule'] == k]
+        for suggestion in matched:
             if suggestion['queue'] is not None:
                 log.info('[#%s] %s suggestion: %s', ticket_id, k, suggestion['queue'])
                 if decision is None:
@@ -252,16 +272,24 @@ def process_ticket(ticket_id):
             if suggestion['comment'] is not None:
                 comments.append(suggestion['comment'])
 
+    return decision, comments
+
+
+def process_ticket(ticket_id):
+
+    suggestions = get_suggestions(ticket_id)
+
+    decision, comments = make_decision(suggestions)
+
     if decision is not None:
-        comments.insert(0, 'Saken ble automatisk flyttet fra %s til %s basert på følgende informasjon:' % (RT_QUEUE, decision['queue']))
+        comments.insert(0, '🚚 Saken ble automatisk flyttet fra %s til %s basert på følgende informasjon:' % (RT_QUEUE, decision['queue']))
         comments.append('Automatisk sortering er et eksperiment. Si gjerne fra hvis det gjøres feil.')
 
         comment_body = '\n'.join(comments)
         log.info('[#%s] Conclusion: Move to %s', ticket_id, decision['queue'])
         log.info('[#%s] Comment:\n%s', ticket_id, comment_body)
 
-        # if decision['queue'] != 'ub-realfagsbiblioteket':
-        # DRY RUN. STOP HERE!
+        # TO TEST THIS SCRIPT WITHOUT ACTUALLY MAKING CHANGES, RETURN HERE:
         # return
 
         if not tracker.comment(ticket_id, text=comment_body, bcc='d.m.heggo@ub.uio.no'):
@@ -277,14 +305,11 @@ def process_ticket(ticket_id):
 
     time.sleep(1)
 
-# tickets = [ticket['id'].split('/')[1] for ticket in tracker.search(Queue=RT_QUEUE, Status='new', Owner='nobody')]
 
 search_query={
     'Queue': RT_QUEUE,
     'Status': 'new',
-    # 'Id': '3035752',
 }
-# search = tracker.search(Queue=RT_QUEUE, Status='new')
 
 ticket_ids = [ticket['id'].split('/')[1] for ticket in tracker.search(**search_query)]
 log.info('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))

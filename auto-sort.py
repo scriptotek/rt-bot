@@ -258,7 +258,7 @@ def make_decision(suggestions):
     # Given a set of suggestions, make a decision
 
     # Order of preference
-    rule_preference_order = ['alma_items', 'pattern_match', 'sender_rs']
+    rule_preference_order = ['alma_items', 'pattern_match', 'rs_library']
 
     decision = None
     comments = [];

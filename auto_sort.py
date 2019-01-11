@@ -7,6 +7,7 @@ logging.config.dictConfig(yaml.load(open('logging.yml')))
 import functools
 from urllib.parse import quote
 import re
+import sys
 import os
 import time
 
@@ -99,8 +100,11 @@ session.headers = {
 # Initialize RT tracker and add a default timeout
 tracker = rt.Rt(RT_URL, RT_USER, RT_PASSWORD)
 tracker.session.get = functools.partial(tracker.session.get, timeout=DEFAULT_TIMEOUT)
-tracker.login()
-log.debug('RT login OK')
+if tracker.login():
+    log.debug('RT login OK')
+else:
+    log.error('RT login failed')
+    sys.exit(1)
 
 
 # Suggest a queue based on the owning library of any item barcodes found in the email body.
@@ -223,12 +227,12 @@ def suggest_from_sender(ticket_id, email):
             }
 
 
-def get_suggestions(ticket_id):
+def get_suggestions(ticket):
     # Given a ticket id, generate a set of suggestions
+    ticket_id = int(ticket['id'].split('/')[-1])
 
     suggestions = []
 
-    ticket = tracker.get_ticket(ticket_id)
     requestor_email = ticket['Requestors'][0]
 
     # Generate suggestions from the resource sharing library of the sender
@@ -275,9 +279,39 @@ def make_decision(suggestions):
     return decision, comments
 
 
+def process_id(x):
+    if isinstance(x, int):
+        return x
+    return int(x.split('/')[-1])
+
+
+def do_merge(ticket_id, into):
+    log.info('Merging ticket %d into %d', ticket_id, into)
+    tracker.merge_ticket(ticket_id, into)
+
+
+def check_uia(ticket):
+    # Check if ticket comes from UiA support system
+
+    m = re.match('.*UiA (INC[0-9]+)', ticket['Subject'])
+    if m:
+        uia_ticket_id = m.group(1)
+        log.info('UiA ticket ID: %s ', uia_ticket_id)
+        tickets = sorted(tracker.search(Queue=rt.ALL_QUEUES, Subject__like=uia_ticket_id), key=lambda x: x['id'])
+        for ticket2 in tickets[1:]:
+            do_merge(process_id(ticket2['id']), process_id(tickets[0]['id']))
+        if len(tickets) > 1:
+            return True
+
+
 def process_ticket(ticket_id):
 
-    suggestions = get_suggestions(ticket_id)
+    ticket = tracker.get_ticket(ticket_id)
+
+    if check_uia(ticket):
+        return
+
+    suggestions = get_suggestions(ticket)
 
     decision, comments = make_decision(suggestions)
 
@@ -306,28 +340,36 @@ def process_ticket(ticket_id):
     time.sleep(1)
 
 
-search_query={
-    'Queue': RT_QUEUE,
-    'Status': 'new',
-}
 
-ticket_ids = [ticket['id'].split('/')[1] for ticket in tracker.search(**search_query)]
-log.debug('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))
-for n, ticket_id in enumerate(ticket_ids):
-    if ticket_id == '3057380':
-        continue
-    while True:
-        try:
-            log.info('[#%s] Processing ticket %d of %d', ticket_id, n + 1, len(ticket_ids))
-            process_ticket(ticket_id)
-            break
-        except requests.RequestException as ex:
-            log.warning('[#%s] Got requestion exception: %s, will retry in a sec.', ticket_id, ex)
-            time.sleep(3)
-            # retry
-            pass
-        except rt.UnexpectedResponse as ex:
-            log.warning('[#%s] Got unexpected response from RT: %s, will retry in a sec.', ticket_id, ex)
-            time.sleep(3)
-            # retry
-            pass
+def main():
+    search_query={
+        'Queue': RT_QUEUE,
+        'Status': 'new',
+    }
+
+    ticket_ids = [process_id(ticket['id']) for ticket in tracker.search(**search_query)]
+    log.debug('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))
+    for n, ticket_id in enumerate(ticket_ids):
+        if ticket_id == '3057380':
+            continue
+        while True:
+            try:
+                log.info('[#%s] Processing ticket %d of %d', ticket_id, n + 1, len(ticket_ids))
+                process_ticket(ticket_id)
+                break
+            except requests.RequestException as ex:
+                log.warning('[#%s] Got requestion exception: %s, will retry in a sec.', ticket_id, ex)
+                time.sleep(3)
+                # retry
+                pass
+            except rt.UnexpectedResponse as ex:
+                log.warning('[#%s] Got unexpected response from RT: %s, will retry in a sec.', ticket_id, ex)
+                time.sleep(3)
+                # retry
+                pass
+
+
+if __name__ == '__main__':
+    main()
+
+

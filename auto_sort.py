@@ -134,8 +134,6 @@ def suggest_from_alma_items(ticket_id, content):
         else:
             libcode = item_data['library']['value']
             libname = item_data['library']['desc']
-
-            loccode = item_data['location']['value']
             locname = item_data['location']['desc']
 
             log.info('[#%s] Barcode %s belongs to %s', ticket_id, barcode, libname)
@@ -153,10 +151,9 @@ def suggest_from_alma_items(ticket_id, content):
 # Suggest a queue based on specific text patterns found the email body.
 def suggest_from_pattern_match(ticket_id, content):
     rule_name = 'pattern_match'
-    suggest_queue = None
     for pattern, queue in pattern_map.items():
         if re.search(pattern, content):
-            log.info('[#%s] Ticket content matched pattern "%s"', ticket_id, pattern)
+            log.info('[#%d] Ticket content matched pattern "%s"', ticket_id, pattern)
             yield {
                 'rule': rule_name,
                 'queue': queue,
@@ -258,14 +255,14 @@ def get_suggestions(ticket):
     return suggestions
 
 
-def make_decision(suggestions):
+def make_decision(ticket_id, suggestions):
     # Given a set of suggestions, make a decision
 
     # Order of preference
     rule_preference_order = ['alma_items', 'pattern_match', 'rs_library']
 
     decision = None
-    comments = [];
+    comments = []
     for k in rule_preference_order:
         matched = [suggestion for suggestion in suggestions if suggestion['rule'] == k]
         for suggestion in matched:
@@ -313,7 +310,7 @@ def process_ticket(ticket_id):
 
     suggestions = get_suggestions(ticket)
 
-    decision, comments = make_decision(suggestions)
+    decision, comments = make_decision(ticket_id, suggestions)
 
     if decision is not None:
         comments.insert(0, '🚚 Saken ble automatisk flyttet fra %s til %s basert på følgende informasjon:' % (RT_QUEUE, decision['queue']))

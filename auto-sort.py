@@ -100,7 +100,7 @@ session.headers = {
 tracker = rt.Rt(RT_URL, RT_USER, RT_PASSWORD)
 tracker.session.get = functools.partial(tracker.session.get, timeout=DEFAULT_TIMEOUT)
 tracker.login()
-log.info('RT login OK')
+log.debug('RT login OK')
 
 
 # Suggest a queue based on the owning library of any item barcodes found in the email body.
@@ -283,7 +283,7 @@ def process_ticket(ticket_id):
 
     if decision is not None:
         comments.insert(0, '🚚 Saken ble automatisk flyttet fra %s til %s basert på følgende informasjon:' % (RT_QUEUE, decision['queue']))
-        comments.append('Automatisk sortering er et eksperiment. Si gjerne fra hvis det gjøres feil.')
+        comments.append('Har scriptet gjort noe feil? Meld fra til Dan Michael.')
 
         comment_body = '\n'.join(comments)
         log.info('[#%s] Conclusion: Move to %s', ticket_id, decision['queue'])
@@ -292,7 +292,7 @@ def process_ticket(ticket_id):
         # TO TEST THIS SCRIPT WITHOUT ACTUALLY MAKING CHANGES, RETURN HERE:
         # return
 
-        if not tracker.comment(ticket_id, text=comment_body, bcc='d.m.heggo@ub.uio.no'):
+        if not tracker.comment(ticket_id, text=comment_body):
             log.error('[#%s] Failed to add comment to ticket!', ticket_id)
             return
 
@@ -312,7 +312,7 @@ search_query={
 }
 
 ticket_ids = [ticket['id'].split('/')[1] for ticket in tracker.search(**search_query)]
-log.info('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))
+log.debug('Found %d tickets in %s' % (len(ticket_ids), RT_QUEUE))
 for n, ticket_id in enumerate(ticket_ids):
     if ticket_id == '3057380':
         continue

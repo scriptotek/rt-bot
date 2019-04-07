@@ -27,7 +27,7 @@ DEFAULT_TIMEOUT = 30
 RT_URL = 'https://rt.uio.no/REST/1.0/'
 RT_USER = os.getenv('RT_USER')
 RT_PASSWORD = os.getenv('RT_PASSWORD')
-RT_QUEUE = 'ub-alma'
+RT_QUEUE = 'ub-brukerhenvendelser'
 
 # Alma settings
 ALMA_URL = 'https://api-eu.hosted.exlibrisgroup.com/almaws/v1'

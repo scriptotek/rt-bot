@@ -1,4 +1,6 @@
+---
 version: 1
+disable_existing_loggers: False
 
 formatters:
   simple:
@@ -15,7 +17,7 @@ handlers:
     class: logging.handlers.TimedRotatingFileHandler
     level: INFO
     formatter: simple
-    filename: auto_sort.log
+    filename: rtbot.log
     when: D
     backupCount: 7
 

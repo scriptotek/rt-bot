@@ -19,3 +19,9 @@ class Processor():
             for ticket in self.rt.search(query):
                 yield ticket
 
+    def get_plain_text_content(self, ticket):
+        # Loop through attachments and check their content
+        for n, att_info in enumerate(self.rt.get_attachments(ticket['id'])):
+            att = self.rt.get_attachment(ticket['id'], att_info[0])
+            if att['ContentType'] == 'text/plain':
+                return att['Content'].decode('utf-8')

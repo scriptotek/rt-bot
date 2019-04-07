@@ -188,21 +188,15 @@ class AutoSort(Processor):
         for suggestion in self.suggest_from_sender(ticket['id'], requestor_email):
             suggestions.append(suggestion)
 
-        # Loop through attachments and check their content
-        for n, att_info in enumerate(self.rt.get_attachments(ticket['id'])):
-            att = self.rt.get_attachment(ticket['id'], att_info[0])
-            if att['ContentType'] == 'text/plain':
-                content = att['Content'].decode('utf-8')
+        content = self.get_plain_text_content(ticket)
+        if content is not None:
+            # Generate suggestions from the document barcodes found in the text
+            for suggestion in self.suggest_from_alma_items(ticket['id'], content):
+                suggestions.append(suggestion)
 
-                # Generate suggestions from the document barcodes found in the text
-                for suggestion in self.suggest_from_alma_items(ticket['id'], content):
-                    suggestions.append(suggestion)
-
-                # Generate suggestions from pre-defined text pattern matches
-                for suggestion in self.suggest_from_pattern_match(ticket['id'], content):
-                    suggestions.append(suggestion)
-
-                break  # Don't process the same ticket more than once
+            # Generate suggestions from pre-defined text pattern matches
+            for suggestion in self.suggest_from_pattern_match(ticket['id'], content):
+                suggestions.append(suggestion)
 
         return suggestions
 

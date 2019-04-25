@@ -6,7 +6,8 @@ log = logging.getLogger(__name__)
 
 
 class ResolveCccReceipts(Processor):
-    # Auto-resolve tickets having custom field CCC: 'Get It Now'.
+    # Auto-resolve tickets from no-reply@copyright.com and
+    # set custom property CccGetItNow=Ja on them.
 
     queries = [
         {

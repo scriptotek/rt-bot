@@ -65,6 +65,13 @@ libcode_map = {
 class AutoSort(Processor):
     # Sort tickets into different RT queues based on a few simple rules.
 
+    queries = [
+        {
+            'Queue': 'ub-brukerhenvendelser',
+            'Status': 'new',
+        }
+    ]
+
     def suggest_from_alma_items(self, ticket_id, content):
         # Suggest a queue based on the owning library of any item barcodes found in the email body.
         rule_name = 'alma_items'

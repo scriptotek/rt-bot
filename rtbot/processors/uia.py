@@ -9,6 +9,13 @@ log = logging.getLogger(__name__)
 class MergeUiATickets(Processor):
     # Merge tickets from the UiA support system with the same ticket ID
 
+    queries = [
+        {
+            'Queue': 'ub-brukerhenvendelser',
+            'Status': 'new',
+        },
+    ]
+
     def merge(self, ticket, into):
         log.info('Merging ticket %d into %d', ticket['id'], into['id'])
         self.rt.merge_ticket(ticket['id'], into['id'])

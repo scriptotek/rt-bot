@@ -140,7 +140,7 @@ class AutoSort(Processor):
             user_group = user_data['user_group']['desc']
             user_group_code = int(user_data['user_group']['value'])
 
-            if user_group_code >= 8:
+            if user_group_code > 8:
                 yield {
                     'rule': rule_name,
                     'queue': None,

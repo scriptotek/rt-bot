@@ -7,5 +7,7 @@ For a walkthrough of the script, see [this blog post](http://scriptotek.github.i
 
 ### Usage
 
+- Run `pip install .` to install rtbot from the folder containing this file.
 - Make a copy of the `.env.example` file, name it `.env` and fill in the secrets there (login information to RT + an Alma API key with read access to Bibs and Users).
-- Run `python auto-sort.py`
+- Run `rtbot`.
+

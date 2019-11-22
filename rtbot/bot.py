@@ -38,6 +38,11 @@ def main():
                     time.sleep(3)
                     # retry
                     pass
+                except rt.ConnectionError as ex:
+                    log.warning('[#%s] Connection error while processing: %s, will retry in a sec.', ticket['id'], ex)
+                    time.sleep(3)
+                    # retry
+                    pass
             time.sleep(1)
 
 

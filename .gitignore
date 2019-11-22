@@ -3,3 +3,4 @@
 venv
 *.egg-info
 .mypy_cache
+__pycache__

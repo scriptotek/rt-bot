@@ -5,6 +5,7 @@ import logging
 import logging.config
 import requests
 import rt
+import backoff
 from functools import partial
 from dotenv import load_dotenv
 from .alma import Alma
@@ -18,34 +19,24 @@ log = logging.getLogger(__name__)
 # Load environment variables from a .env file
 load_dotenv()
 
-
-def retry_on_error(do_stuff):
-    while True:
-        try:
-            do_stuff()
-            break
-        except requests.RequestException as ex:
-            log.warning('Got requestion exception: %s, will retry in a sec.', ex)
-            time.sleep(3)
-            # retry
-            pass
-        except rt.UnexpectedResponse as ex:
-            log.warning('Got unexpected response from RT: %s, will retry in a sec.', ex)
-            time.sleep(3)
-            # retry
-            pass
-        except rt.ConnectionError as ex:
-            log.warning('Connection error while processing: %s, will retry in a sec.', ex)
-            time.sleep(3)
-            # retry
-            pass
-        time.sleep(1)
+exceptions = (
+    requests.exceptions.Timeout,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.RequestException,
+    rt.UnexpectedResponse,
+)
 
 
+@backoff.on_exception(backoff.expo, exceptions, max_tries=10)
+def process_ticket(processor, ticket):
+    processor.process_ticket(ticket)
+
+
+@backoff.on_exception(backoff.expo, exceptions, max_tries=10)
 def process_tickets(processor):
     for ticket in processor.get_tickets():
         time.sleep(1)
-        retry_on_error(partial(processor.process_ticket, ticket))
+        process_ticket(processor, ticket)
 
 
 def main():
@@ -53,7 +44,7 @@ def main():
     tracker = Tracker()
 
     for processor in get_processors(tracker, alma):
-        retry_on_error(partial(process_tickets, processor))
+        process_tickets(processor)
 
 
 if __name__ == '__main__':

@@ -166,6 +166,4 @@ class TakeAway(Processor):
             log.error('[#%s] Failed to update ticket!', ticket['id'])
             return False
 
-        self.rt.reply(ticket['id'], 'Your takeaway request has been received. You will receive a new e-mail once it\'s ready.')
-
         return True

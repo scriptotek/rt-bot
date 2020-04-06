@@ -13,6 +13,7 @@ pickup_points = {
     'Law Library (Domus Juridica)': 'ub-ujur',
     'Medical Library (Rikshospitalet)': 'ub-umed',
     'Science Library (VB)': 'ub-realfagsbiblioteket',
+
     'HumSam-biblioteket (GSH)': 'ub-humsam-biblioteket',
     'Juridisk bibliotek (Domus Juridica)': 'ub-ujur',
     'Medisinsk bibliotek (Rikshospitalet)': 'ub-umed',

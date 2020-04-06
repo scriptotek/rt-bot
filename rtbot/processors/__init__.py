@@ -2,7 +2,7 @@ from .autosort import AutoSort
 from .uia import MergeUiATickets
 from .autoreply import ResolveAutoReplies
 from .ccc import ResolveCccReceipts
-from .take_away import TakeAway
+from .takeaway import TakeAway
 
 processors = [
     TakeAway,

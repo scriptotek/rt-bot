@@ -22,7 +22,9 @@ setup(name='rtbot',
       install_requires=['python-dotenv',
                         'rt',
                         'requests',
-                        'pyyaml'],
+                        'pyyaml',
+                        'backoff',
+                        'pydash'],
       entry_points={'console_scripts': ['rtbot=rtbot.bot:main']},
       packages=['rtbot']
       )

@@ -1,12 +1,11 @@
 # settings.py
 import yaml
 import time
-import logging
 import logging.config
 import requests
+import pydash
 import rt
 import backoff
-from functools import partial
 from dotenv import load_dotenv
 from .alma import Alma
 from .rt import Tracker

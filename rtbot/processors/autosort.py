@@ -221,6 +221,9 @@ class AutoSort(Processor):
         return decision, comments
 
     def process_ticket(self, ticket):
+        if re.match('Submission to .+ has been delivered', ticket['Subject']) is not None:
+            return False
+
         suggestions = self.get_suggestions(ticket)
 
         decision, comments = self.make_decision(ticket['id'], suggestions)

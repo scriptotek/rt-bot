@@ -3,7 +3,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Processor():
+class Processor:
 
     queries = []
 
@@ -17,6 +17,7 @@ class Processor():
                      type(self).__name__,
                      ' AND '.join(['%s=%s' % (k, v) for k, v in query.items()]))
             for ticket in self.rt.search(query):
+                ticket['FirstRequestor'] = self.rt.get_user(ticket['Requestors'][0])
                 yield ticket
 
     def get_plain_text_content(self, ticket):

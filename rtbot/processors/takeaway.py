@@ -268,7 +268,7 @@ class TakeAway(Processor):
     def extract_isbns(content: str) -> list:
         # Extract ISBNs from the last part of the mail body
         # Remove first part to avoid match on phone numbers, which can be 10 digit with country prefix
-        content = re.split('ISBN.(nummer|number)', content, 1)[1]
+        content = re.split('ISBN.(?:nummer|number)', content, 1)[1]
 
         content = content.replace('-', '')
         return re.findall(r'\b(97[0-9xX]{11}|[0-9xX]{10})\b', content, re.MULTILINE)

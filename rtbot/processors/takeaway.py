@@ -351,7 +351,7 @@ class TakeAway(Processor):
 
             if alma_user['lang'] != lang_map_alma[user_data['language']]:
                 comment_body.append(
-                    '<p>⚠️ ️Merk: Brukeren valgte «%s» som språk for bestillingen, men har «%s» som registrert språk på brukeren sin i Alma. Det kan være verdien i Alma bør endres til «%s».</p>' % (
+                    '<p>⚠️ ️Merk: Personen valgte «%s» som språk for bestillingen, men har «%s» som registrert språk på brukeren sin i Alma. Det kan være verdien i Alma bør endres til «%s».</p>' % (
                         user_data['language'], alma_user['lang'], lang_map_alma[user_data['language']]
                     )
                 )

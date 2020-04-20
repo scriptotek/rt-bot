@@ -1,5 +1,4 @@
 import logging
-import rt
 from .processor import Processor
 
 log = logging.getLogger(__name__)

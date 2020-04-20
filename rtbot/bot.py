@@ -3,7 +3,6 @@ import yaml
 import time
 import logging.config
 import requests
-import pydash
 import rt
 import backoff
 from dotenv import load_dotenv

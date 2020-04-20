@@ -173,13 +173,14 @@ class TakeAway(Processor):
             'expand_items': 'true',
         }).json()
 
-        if not pydash.get(res, 'results.0.holdings.0'):
+        if not pydash.get(res, 'results.0.holdings.0') and not pydash.get(res, 'results.0.portfolios.0'):
             log.info('Zero results in Alma for IBSN: %s' % isbn)
             yield {
                 'bib_id': '',
                 'title': 'Ingen treff i Alma',
                 'isbn': isbn,
                 'holdings': [],
+                'portfolios': [],
                 'libs': set(),
             }
             return
@@ -192,6 +193,7 @@ class TakeAway(Processor):
                 'title': bib.get('title', '-'),
                 'isbn': isbn,
                 'holdings': [],
+                'portfolios': [],
                 'libs': set(),
             }
             for holding in bib.get('holdings', []):
@@ -201,6 +203,10 @@ class TakeAway(Processor):
                 if holding.get('library') and ava > 0:
                     out['libs'].add(holding.get('library'))
                 out['holdings'].append(self.format_holding(holding, ava, tot))
+            for portfolio in bib.get('portfolios', []):
+                if portfolio.get('activation') == 'Available':
+                    out['portfolios'].append(self.format_portfolio(portfolio))
+
             yield out
 
     @staticmethod
@@ -217,6 +223,13 @@ class TakeAway(Processor):
         return '\n'.join(out)
 
     @staticmethod
+    def format_portfolio(portfolio: dict) -> str:
+        out = ['<li>']
+        out.append('E-book %s from %s<br>' % (portfolio.get('activation', '-'), portfolio.get('collection_name', '-')))
+        out.append('</li>')
+        return '\n'.join(out)
+
+    @staticmethod
     def format_bib_results(results: list) -> str:
         by_bib: dict = {}
         for res in results:
@@ -225,6 +238,7 @@ class TakeAway(Processor):
                     'isbns': [res['isbn']],
                     'title': res['title'],
                     'holdings': res['holdings'],
+                    'portfolios': res['portfolios'],
                     'libs': res['libs'],
                 }
 
@@ -236,6 +250,8 @@ class TakeAway(Processor):
                 out.append('<ul>')
                 for holding in bib['holdings']:
                     out.append(holding)
+                for portfolio in bib['portfolios']:
+                    out.append(portfolio)
                 out.append('</ul>')
             out.append('</li>')
 

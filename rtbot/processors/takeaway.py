@@ -266,19 +266,16 @@ class TakeAway(Processor):
                 return queue
 
     @staticmethod
-    def extract_email(content: str) -> Optional[str]:
-        # Determine requestor e-mail from email body.
-        m = re.search(r'    \* (.+?@.+?\.[a-z]{2,3})$', content, re.MULTILINE)
-        if not m:
-            return None
-        return m.group(1)
+    def extract_user_data(content: str) -> dict:
+        # Extract user data from email body
+        answers = re.findall(r'^    \* (.*?)$', content, re.MULTILINE)
 
-    @staticmethod
-    def extract_language(content: str) -> Optional[str]:
-        m = re.search(r'    \* (Norsk bokmål|Norsk nynorsk|English)$', content, re.MULTILINE)
-        if not m:
-            return None
-        return m.group(1)
+        return {
+            'language': answers[0],
+            'name': answers[1],
+            'email': answers[2],
+            'phone': answers[3],
+        }
 
     @staticmethod
     def extract_isbns(content: str) -> list:
@@ -310,9 +307,8 @@ class TakeAway(Processor):
 
         # Lookup sender in Alma
 
-        rt_language = self.extract_language(content) or 'Ukjent'
-
-        feide_id = self.extract_email(content)
+        user_data = self.extract_user_data(content)
+        possibly_feide_id = user_data['email']
 
         # print(ticket['FirstRequestor'])
         # sender_name = ticket['FirstRequestor']['RealName']
@@ -320,19 +316,49 @@ class TakeAway(Processor):
 
         sender_email = ticket['FirstRequestor']['EmailAddress']
 
-        alma_user = self.lookup_alma_user(feide_id, sender_email)
+        alma_user = self.lookup_alma_user(possibly_feide_id, sender_email)
+
+        if alma_user is not None:
+            in_alma_msg = 'Funnet i Alma:'
+        else:
+            in_alma_msg = '<em>Ikke funnet i Alma:</em>'
+
+
+        comment_body.append(
+            '<p>👤 Bestiller: %s 📞 %s ✉️ %s 🗂️ %s</p>' % (
+                user_data['name'],
+                user_data['phone'],
+                user_data['email'],
+                in_alma_msg
+            )
+        )
+
         if alma_user is not None:
             comment_body.append(
-                '<p>👤 Bestiller ble funnet i Alma:</p>\n<ul>' +
+                '<ul>' +
                 '<li>Primær-ID: %s</li>' % alma_user['primary_id'] +
                 '<li>Brukergruppe: %s</li>' % alma_user['user_group'] +
                 '<li>Resource sharing library: %s</li>' % alma_user['rs_library'] +
                 '<li>Foretrukket språk: %s</li>' % alma_user['lang'] +
                 '</ul>'
             )
+
+            lang_map_alma = {
+                'Norsk bokmål': 'Norwegian',
+                'Norsk nynorsk': 'Norwegian Nynorsk; Nynorsk, Norwegian',
+                'English': 'English',
+            }
+
+            if alma_user['lang'] != lang_map_alma[user_data['language']]:
+                comment_body.append(
+                    '<p>⚠️ ️Merk: Brukeren valgte «%s» som språk for bestillingen, men har «%s» som registrert språk på brukeren sin i Alma. Det kan være verdien i Alma bør endres til «%s».</p>' % (
+                        user_data['language'], alma_user['lang'], lang_map_alma[user_data['language']]
+                    )
+                )
+
         else:
             comment_body.append(
-                '<p>👤 Klarte ikke å automatisk finne bestiller i Alma ved søk på «%s» eller «%s».</p>' % (feide_id, sender_email)
+                '<p><em>Klarte ikke å automatisk finne bestiller i Alma ved søk på «%s» eller «%s».</em></p>' % (possibly_feide_id, sender_email)
             )
             alma_user = {
                 'user_group': None,
@@ -370,7 +396,7 @@ class TakeAway(Processor):
         request_code = add_to_stats(
             request_code_prefix=request_code_prefix,
             request_date=ticket['Created'],
-            request_lang=rt_language,
+            request_lang=user_data['language'],
             request_queue=queue,
             user_rs_library=alma_user['rs_library'],
             user_group=alma_user['user_group'],
@@ -380,7 +406,7 @@ class TakeAway(Processor):
         )
 
         if len(comment_body):
-            print(comment_body)
+            print('\n'.join(comment_body))
             time.sleep(10)
             if not self.rt.comment(ticket['id'], text='\n'.join(comment_body), content_type='text/html'):
                 log.error('[#%s] Failed to add comment to ticket!', ticket['id'])

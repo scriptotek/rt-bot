@@ -15,12 +15,12 @@ log = logging.getLogger(__name__)
 pickup_points = {
     'Humanities and Social Sciences Library (GSH)': 'ub-humsam-biblioteket',
     'Law Library (Domus Juridica)': 'ub-ujur',
-    'Medical Library (Rikshospitalet)': 'ub-umed',
+    'Medical Library': 'ub-umed',
     'Science Library (VB)': 'ub-realfagsbiblioteket',
 
     'HumSam-biblioteket (GSH)': 'ub-humsam-biblioteket',
     'Juridisk bibliotek (Domus Juridica)': 'ub-ujur',
-    'Medisinsk bibliotek (Rikshospitalet)': 'ub-umed',
+    'Medisinsk bibliotek': 'ub-umed',
     'Realfagsbiblioteket (VB)': 'ub-realfagsbiblioteket',
 }
 

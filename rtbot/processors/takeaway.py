@@ -140,7 +140,7 @@ class TakeAway(Processor):
         if feide_id is None:
             return None
         try:
-            res = self.alma.get_json('/users/%s' % feide_id)
+            res = self.alma.get_json('/users/%s' % feide_id, params={'expand': 'fees'})
             if res.get('errorsExist'):
                 log.info('User not found in Alma: %s', feide_id)
             else:
@@ -151,6 +151,8 @@ class TakeAway(Processor):
                     'user_group': pydash.get(res, 'user_group.desc'),
                     'primary_id': pydash.get(res, 'primary_id'),
                     'rs_library': pydash.get(res, 'rs_library.0.code.desc'),
+                    'fees': pydash.get(res, 'fees.value', 0),
+                    'blocks': pydash.get(res, 'user_block', []),
                 }
         except:
             pass
@@ -354,6 +356,16 @@ class TakeAway(Processor):
                     '<p>⚠️ ️Merk: Personen valgte «%s» som språk for bestillingen, men har «%s» som registrert språk på brukeren sin i Alma. Det kan være verdien i Alma bør endres til «%s».</p>' % (
                         user_data['language'], alma_user['lang'], lang_map_alma[user_data['language']]
                     )
+                )
+
+            if len(alma_user['blocks']):
+                comment_body.append(
+                    '<p>⚠️ ️Merk: Personen har én eller flere blokkeringer, se Alma for detaljer.</p>'
+                )
+
+            if alma_user['fees'] > 200:
+                comment_body.append(
+                    '<p>⚠️ ️Merk: Personen har %s kr i utestående krav/gebyrer.</p>' % alma_user['fees']
                 )
 
         else:

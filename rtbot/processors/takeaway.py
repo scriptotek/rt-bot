@@ -262,7 +262,7 @@ class TakeAway(Processor):
     def determine_queue(content: str) -> Optional[str]:
         # Determine queue from email body.
         for pickup_point, queue in pickup_points.items():
-            if content.find(f'    * {pickup_point}') != -1:
+            if content.find(f'    * {pickup_point}\n') != -1:
                 return queue
 
     @staticmethod

@@ -13,15 +13,15 @@ from .processor import Processor
 log = logging.getLogger(__name__)
 
 pickup_points = {
-    'Humanities and Social Sciences Library (GSH)': 'ub-humsam-biblioteket',
-    'Law Library (Domus Juridica)': 'ub-ujur',
+    'Humanities and Social Sciences Library': 'ub-humsam-biblioteket',
+    'Law Library': 'ub-ujur',
     'Medical Library': 'ub-umed',
-    'Science Library (VB)': 'ub-realfagsbiblioteket',
+    'Science Library': 'ub-realfagsbiblioteket',
 
-    'HumSam-biblioteket (GSH)': 'ub-humsam-biblioteket',
-    'Juridisk bibliotek (Domus Juridica)': 'ub-ujur',
+    'HumSam-biblioteket': 'ub-humsam-biblioteket',
+    'Juridisk bibliotek': 'ub-ujur',
     'Medisinsk bibliotek': 'ub-umed',
-    'Realfagsbiblioteket (VB)': 'ub-realfagsbiblioteket',
+    'Realfagsbiblioteket': 'ub-realfagsbiblioteket',
 }
 
 
@@ -359,11 +359,13 @@ class TakeAway(Processor):
                 )
 
             if len(alma_user['blocks']):
+                log.info('[#%s] User has blocks', ticket['id'])
                 comment_body.append(
                     '<p>⚠️ ️Merk: Personen har én eller flere blokkeringer, se Alma for detaljer.</p>'
                 )
 
             if alma_user['fees'] > 200:
+                log.info('[#%s] User has fees > 200', ticket['id'])
                 comment_body.append(
                     '<p>⚠️ ️Merk: Personen har %s kr i utestående krav/gebyrer.</p>' % alma_user['fees']
                 )

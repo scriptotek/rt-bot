@@ -5,7 +5,7 @@ from .ccc import ResolveCccReceipts
 from .takeaway import TakeAway
 
 processors = [
-    TakeAway,
+    # TakeAway,
     ResolveAutoReplies,
     ResolveCccReceipts,
     MergeUiATickets,

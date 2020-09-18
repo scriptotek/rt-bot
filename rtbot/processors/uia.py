@@ -27,7 +27,7 @@ class MergeUiATickets(Processor):
             log.info('UiA ticket ID: %s ', uia_ticket_id)
 
             # Find all tickets with this ticket ID
-            tickets = sorted(self.rt.search(Queue=rt.ALL_QUEUES, Subject__like=uia_ticket_id), key=lambda x: x['id'])
+            tickets = sorted(self.rt.tracker.search(Queue=rt.ALL_QUEUES, Subject__like=uia_ticket_id), key=lambda x: x['id'])
 
             for ticket2 in tickets[1:]:
                 self.merge(ticket2, tickets[0])

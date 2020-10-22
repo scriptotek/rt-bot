@@ -17,7 +17,7 @@ class MergeUiATickets(Processor):
     ]
 
     def merge(self, ticket, into):
-        log.info('Merging ticket %d into %d', ticket['id'], into['id'])
+        log.info('Merging ticket %s into %s', ticket['id'], into['id'])
         self.rt.merge_ticket(ticket['id'], into['id'])
 
     def process_ticket(self, ticket):

@@ -61,6 +61,20 @@ libcode_map = {
     '1030301': 'ub-humsam-biblioteket',
 }
 
+# Map of campus codes to RT queues
+campus_map = {
+    'BLINDERN': 'ub-humsam-biblioteket',
+    'UHSARK': 'ub-humsam-biblioteket',
+    'UIOETNO': 'ub-humsam-biblioteket',
+    'UIOKHM': 'ub-humsam-biblioteket',
+    'UREALINF': 'ub-realfagsbiblioteket-ifi',
+    'UJUR': 'ub-ujur',
+    'UMED': 'ub-umed',
+    'UREALNHM': 'ub-realfagsbiblioteket',
+    'UHSIBSEN': 'ub-humsam-biblioteket',
+    'NSSF': 'ub-umed',
+}
+
 
 class AutoSort(Processor):
     # Sort tickets into different RT queues based on a few simple rules.
@@ -167,6 +181,25 @@ class AutoSort(Processor):
                             libname
                         ),
                     }
+            elif 'campus_code' in user_data:
+                campus_code = user_data['campus_code']['value']
+                campus_desc = user_data['campus_code']['desc']
+                log.info('[#%s] Sender email %s belongs to Alma user %s with no resource sharing library, but campus code: %s',
+                         ticket_id, email, primary_id, campus_code)
+
+                queue = campus_map.get(campus_code)
+                if queue is not None:
+                    yield {
+                        'rule': rule_name,
+                        'queue': queue,
+                        'comment': '- Avsender (%s) er i brukergruppen «%s» og mangler resource sharing library, men har campus code «%s».' % (
+                            primary_id,
+                            user_group,
+                            campus_desc
+                        ),
+                    }
+
+
             else:
                 log.info('[#%s] Sender email %s belongs to Alma user %s, who does not have a resource sharing library configured.',
                          ticket_id, email, primary_id)

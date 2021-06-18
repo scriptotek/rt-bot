@@ -33,7 +33,10 @@ class ResolveAutoReplies(Processor):
         if not self.rt.comment(ticket['id'], text=comment, content_type='text/html'):
             log.error('[#%s] Failed to add comment to ticket!', ticket['id'])
             return False
-        if not self.rt.edit_ticket(ticket['id'], Status='resolved'):
+
+        # Merk: Vi tømmer Requestors for å forhindre at en "Sak lukket (Resolved)"-melding sendes ut, siden disse kan føre til at mottakersystemet
+        # sender et nytt autosvar og bringer oss inn i en endeløs løkke av autosvar.
+        if not self.rt.edit_ticket(ticket['id'], Status='resolved', Requestors=[]):
             log.error('[#%s] Failed to auto-resolve ticket!', ticket['id'])
             return False
         return True
@@ -55,9 +58,9 @@ class ResolveAutoReplies(Processor):
                 "meldingens emne inneholdt teksten «Re: UiA INC*- Notification Item Letter»"
             )
 
-        if re.search(r'Notification Item Letter', ticket['Subject']) and sender_email == 'noreply@topdesk.net':
+        if sender_email == 'uibhjelp-reply@uib.no' and re.search(r'\(.*\) Notification Item Letter', ticket['Subject']):
             return self.autoresolve(
                 ticket,
                 "autosvar fra UBB på Alma Notification Item Letter",
-                "meldingens emne inneholdt teksten «Notification Item Letter» og avsender var noreply@topdesk.net"
+                "meldingens emne inneholdt teksten «Notification Item Letter» og avsender var uibhjelp-reply@uib.no"
             )

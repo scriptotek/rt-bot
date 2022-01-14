@@ -3,7 +3,7 @@
 This repo contains a Python 3 script that delegates tickets from a central Request Tracker (RT) queue to other queues based on a few simple rules.
 The script integrates with the Alma API to find additional information about the sender and documents mentioned in the tickets.
 
-For a walkthrough of the script, see [this blog post](http://scriptotek.github.io/blog/2018/08/10/rt-automation.html).
+For a walkthrough of the script, see [this blog post](http://scriptotek.github.io/blog/2018/08/13/rt-automation.html).
 
 ### Usage
 

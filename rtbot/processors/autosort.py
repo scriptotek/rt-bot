@@ -164,7 +164,7 @@ class AutoSort(Processor):
                     ),
                 }
 
-            elif 'rs_library' in user_data and len(user_data['rs_library']) > 0:
+            elif user_data.get('rs_library') is not None and len(user_data['rs_library']) > 0:
                 libcode = user_data['rs_library'][0]['code']['value']
                 libname = user_data['rs_library'][0]['code']['desc']
                 log.info('[#%s] Sender email %s belongs to Alma user %s with resource sharing library: %s',
